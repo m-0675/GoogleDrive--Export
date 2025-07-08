@@ -24,7 +24,7 @@
     // Load GSI Sign-In button
     window.onload = function () {
       google.accounts.id.initialize({
-        client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com",
+        client_id: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com.apps.googleusercontent.com",
         callback: handleCredentialResponse
       });
 
@@ -46,7 +46,7 @@
       gapi.load('client:auth2', () => {
         gapi.client.init({
           apiKey: "YOUR_API_KEY",
-          clientId: "YOUR_CLIENT_ID.apps.googleusercontent.com",
+          clientId: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com.apps.googleusercontent.com",
           scope: "https://www.googleapis.com/auth/drive.readonly",
           discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
         }).then(() => {
