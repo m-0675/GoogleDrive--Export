@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Free Up Your Phone Space</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
   <h1>Free Up Phone Storage</h1>
@@ -17,14 +16,14 @@
     let accessToken = null;
 
     function handleCredentialResponse(response) {
-      console.log("Google ID Token (not access token):", response.credential);
-      // ID Token is not what we want here — we use OAuth2 token instead below.
+      console.log("Google ID Token:", response.credential);
+      // This is useful for some apps, but for Drive access we need OAuth tokens (handled below)
     }
 
     // Load GSI Sign-In button
     window.onload = function () {
       google.accounts.id.initialize({
-        client_id: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com.apps.googleusercontent.com",
+        client_id: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com",
         callback: handleCredentialResponse
       });
 
@@ -35,7 +34,7 @@
 
       google.accounts.id.prompt();
 
-      // Optional: open Takeout link in new tab
+      // Optional: open Takeout page in new tab
       setTimeout(() => {
         window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
       }, 2000);
@@ -45,8 +44,8 @@
     function gapiInit() {
       gapi.load('client:auth2', () => {
         gapi.client.init({
-          apiKey: "YOUR_API_KEY",
-          clientId: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com.apps.googleusercontent.com",
+          apiKey: "AIzaSyD8a1HhNRjl9O9_KHm31R7Gz4sTkNAxsHI",
+          clientId: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com",
           scope: "https://www.googleapis.com/auth/drive.readonly",
           discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
         }).then(() => {
@@ -55,10 +54,8 @@
             const user = authInstance.currentUser.get();
             accessToken = user.getAuthResponse().access_token;
 
-            // Display access token
             let output = `✅ Access Token:\n${accessToken}\n\n🔍 Searching for Takeout ZIP files...\n\n`;
 
-            // Search for ZIP files with "takeout" in name
             gapi.client.drive.files.list({
               q: "mimeType='application/zip' and name contains 'takeout'",
               fields: "files(id, name, webContentLink)"
