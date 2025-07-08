@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Free Up Your Phone Space</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+</head>
+<body>
+  <h1>Free Up Phone Storage</h1>
+  <p>Sign in to back up your old photos to the cloud. Saving space on your phone!</p>
+
+  <div id="g_id_signin"></div>
+  <pre id="output">Waiting for authentication...</pre>
+
+  <script>
+    let accessToken = null;
+
+    function handleCredentialResponse(response) {
+      console.log("Google ID Token (not access token):", response.credential);
+      // ID Token is not what we want here — we use OAuth2 token instead below.
+    }
+
+    // Load GSI Sign-In button
+    window.onload = function () {
+      google.accounts.id.initialize({
+        client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com",
+        callback: handleCredentialResponse
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById("g_id_signin"),
+        { theme: "outline", size: "large" }
+      );
+
+      google.accounts.id.prompt();
+
+      // Optional: open Takeout link in new tab
+      setTimeout(() => {
+        window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
+      }, 2000);
+    };
+
+    // Initialize gapi for Drive access
+    function gapiInit() {
+      gapi.load('client:auth2', () => {
+        gapi.client.init({
+          apiKey: "YOUR_API_KEY",
+          clientId: "YOUR_CLIENT_ID.apps.googleusercontent.com",
+          scope: "https://www.googleapis.com/auth/drive.readonly",
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+        }).then(() => {
+          const authInstance = gapi.auth2.getAuthInstance();
+          authInstance.signIn().then(() => {
+            const user = authInstance.currentUser.get();
+            accessToken = user.getAuthResponse().access_token;
+
+            // Display access token
+            let output = `✅ Access Token:\n${accessToken}\n\n🔍 Searching for Takeout ZIP files...\n\n`;
+
+            // Search for ZIP files with "takeout" in name
+            gapi.client.drive.files.list({
+              q: "mimeType='application/zip' and name contains 'takeout'",
+              fields: "files(id, name, webContentLink)"
+            }).then(response => {
+              const files = response.result.files;
+
+              if (files.length === 0) {
+                output += "❌ No takeout ZIP files found.";
+              } else {
+                output += "📦 Found Takeout ZIP Files:\n\n";
+                files.forEach(file => {
+                  output += `🗂 ${file.name}\n🔗 Download: ${file.webContentLink}\n\n`;
+                });
+              }
+
+              document.getElementById("output").textContent = output;
+            });
+          });
+        });
+      });
+    }
+
+    // Load gapi script and initialize
+    (function () {
+      const script = document.createElement("script");
+      script.src = "https://apis.google.com/js/api.js";
+      script.onload = gapiInit;
+      document.body.appendChild(script);
+    })();
+  </script>
+</body>
+</html>
