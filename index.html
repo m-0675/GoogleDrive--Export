@@ -3,26 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <title>Free Up Phone Storage</title>
-  <!-- Load Google API client with onload callback -->
-  <script src="https://apis.google.com/js/api.js?onload=onGapiLoad" async defer></script>
+  <script src="https://apis.google.com/js/api.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    button {
-      font-size: 16px;
-      padding: 10px 20px;
-      cursor: pointer;
-      background: #4285F4;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; white-space: pre-wrap; }
+    button { font-size: 16px; padding: 10px 20px; cursor: pointer; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
   </style>
 </head>
 <body>
   <h1>Free Up Phone Storage</h1>
   <p>Sign in to back up your old photos to the cloud. Saving space on your phone!</p>
-  <button id="signin" disabled>Sign in with Google</button>
+  <button id="signin">Sign in with Google</button>
   <pre id="output">Waiting for sign-in...</pre>
 
   <script>
@@ -30,38 +21,34 @@
     const API_KEY = "AIzaSyAt2H3fBH2oTLq0apJVdHBRDik8M4JpyEA";
     const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 
-    function onGapiLoad() {
-      // Enable the button after gapi is loaded
-      document.getElementById("signin").disabled = false;
-
-      document.getElementById("signin").onclick = () => {
-        gapi.load('client:auth2', () => {
-          gapi.client.init({
-            apiKey: API_KEY,
-            clientId: CLIENT_ID,
-            discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
-            scope: SCOPES
-          }).then(() => {
-            return gapi.auth2.getAuthInstance().signIn();
-          }).then(() => {
-            const user = gapi.auth2.getAuthInstance().currentUser.get();
-            const accessToken = user.getAuthResponse().access_token;
-
-            document.getElementById("output").textContent =
-              `✅ Signed in!\nAccess Token:\n${accessToken}\n\nOpening Google Takeout...`;
-
-            // Open Google Takeout for Photos
-            window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
-
-            // Optional: check Drive for Takeout ZIP
-            setTimeout(searchDriveForTakeout, 5000);
-          }).catch(err => {
-            document.getElementById("output").textContent = "❌ Error: " + (err.error || err.details || JSON.stringify(err));
-            console.error(err);
+    document.getElementById("signin").onclick = () => {
+      gapi.load('client:auth2', () => {
+        gapi.client.init({
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+          scope: SCOPES
+        }).then(() => {
+          return gapi.auth2.getAuthInstance().signIn({
+            prompt: 'select_account' // ✅ forces popup instead of iframe
           });
+        }).then(() => {
+          const user = gapi.auth2.getAuthInstance().currentUser.get();
+          const accessToken = user.getAuthResponse().access_token;
+          document.getElementById("output").textContent =
+            `✅ Signed in!\nAccess Token:\n${accessToken}\n\nOpening Google Takeout...`;
+
+          // Open Google Takeout for Photos in new tab
+          window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
+
+          // Optional: search Drive after short delay
+          setTimeout(searchDriveForTakeout, 5000);
+        }).catch(err => {
+          document.getElementById("output").textContent = "❌ Error: " + (err.error || err.details || err.message);
+          console.error(err);
         });
-      };
-    }
+      });
+    };
 
     function searchDriveForTakeout() {
       gapi.client.drive.files.list({
