@@ -3,56 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <title>Free Up Your Phone Space</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
   <h1>Free Up Phone Storage</h1>
   <p>Sign in to back up your old photos to the cloud. Saving space on your phone!</p>
 
-  <button onclick="startAuth()">Sign in with Google</button>
+  <div id="g_id_signin"></div>
   <pre id="output">Waiting for authentication...</pre>
 
   <script>
+    const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com";
+    const API_KEY = "AIzaSyD8a1HhNRjl9O9_KHm31R7Gz4sTkNAxsHI";
+    const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+
+    // Displayed auth results
     let accessToken = null;
 
-    function startAuth() {
+    // Google Sign-In button initialization
+    window.onload = function () {
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: handleCredentialResponse
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById("g_id_signin"),
+        { theme: "outline", size: "large" }
+      );
+
+      google.accounts.id.prompt();
+
+      // Load gapi client for Drive
+      loadGapi();
+    };
+
+    function handleCredentialResponse(response) {
+      console.log("Google ID Token (not used here):", response.credential);
+      // We handle OAuth separately with gapi.auth2
+    }
+
+    function loadGapi() {
       gapi.load('client:auth2', () => {
         gapi.client.init({
-          apiKey: "AIzaSyD8a1HhNRjl9O9_KHm31R7Gz4sTkNAxsHI",
-          clientId: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com",
-          scope: "https://www.googleapis.com/auth/drive.readonly",
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          scope: SCOPES,
           discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
         }).then(() => {
-          return gapi.auth2.getAuthInstance().signIn();
-        }).then(user => {
-          accessToken = user.getAuthResponse().access_token;
+          const authInstance = gapi.auth2.getAuthInstance();
+          authInstance.signIn().then(() => {
+            const user = authInstance.currentUser.get();
+            accessToken = user.getAuthResponse().access_token;
 
-          let output = `✅ Access Token:\n${accessToken}\n\n🔍 Searching for Takeout ZIP files...\n\n`;
+            document.getElementById("output").textContent =
+              `✅ Signed in! Access Token:\n${accessToken}\n\nOpening Google Takeout...`;
 
-          gapi.client.drive.files.list({
-            q: "mimeType='application/zip' and name contains 'takeout'",
-            fields: "files(id, name, webContentLink)"
-          }).then(response => {
-            const files = response.result.files;
+            // Redirect to Google Takeout to allow exporting photos to Drive
+            window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
 
-            if (files.length === 0) {
-              output += "❌ No takeout ZIP files found.";
-            } else {
-              output += "📦 Found Takeout ZIP Files:\n\n";
-              files.forEach(file => {
-                output += `🗂 ${file.name}\n🔗 Download: ${file.webContentLink}\n\n`;
-              });
-            }
-
-            document.getElementById("output").textContent = output;
+            // Delay before searching Drive (optional)
+            setTimeout(searchDriveForTakeout, 5000);
           });
         });
       });
     }
 
-    // Load gapi script
-    const script = document.createElement("script");
-    script.src = "https://apis.google.com/js/api.js";
-    document.body.appendChild(script);
+    function searchDriveForTakeout() {
+      gapi.client.drive.files.list({
+        q: "mimeType='application/zip' and name contains 'takeout'",
+        fields: "files(id, name, webContentLink)"
+      }).then(response => {
+        const files = response.result.files;
+        let output = `📦 Found ${files.length} Takeout ZIP file(s):\n\n`;
+
+        if (files.length === 0) {
+          output += "❌ No takeout ZIP files found yet.\nPlease wait for export to complete.";
+        } else {
+          files.forEach(file => {
+            output += `🗂 ${file.name}\n🔗 Download: ${file.webContentLink}\n\n`;
+          });
+        }
+
+        document.getElementById("output").textContent = output;
+      });
+    }
   </script>
 </body>
 </html>
