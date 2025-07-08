@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <title>Free Up Phone Storage</title>
-  <!-- Load Google API libraries -->
   <script src="https://apis.google.com/js/api.js"></script>
-  <script src="https://apis.google.com/js/platform.js" async defer></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button { font-size: 16px; padding: 10px 20px; cursor: pointer; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  </style>
 </head>
 <body>
   <h1>Free Up Phone Storage</h1>
-  <p>Sign in to back up your old photos to the cloud.</p>
-
-  <!-- Sign-in button -->
+  <p>Sign in to back up your old photos to the cloud. Saving space on your phone!</p>
   <button id="signin">Sign in with Google</button>
-
-  <!-- Output section -->
   <pre id="output">Waiting for sign-in...</pre>
 
   <script>
     const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com";
-    const API_KEY = "AIzaSyD8a1HhNRjl9O9_KHm31R7Gz4sTkNAxsHI";
+    const API_KEY = "AIzaSyAt2H3fBH2oTLq0apJVdHBRDik8M4JpyEA";
     const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 
-    // Sign-in button click handler
     document.getElementById("signin").onclick = () => {
       gapi.load('client:auth2', () => {
         gapi.client.init({
@@ -38,19 +36,18 @@
           document.getElementById("output").textContent =
             `✅ Signed in!\nAccess Token:\n${accessToken}\n\nOpening Google Takeout...`;
 
-          // Open Takeout
+          // Open Google Takeout for Photos in new tab
           window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
 
-          // Delay search to give time for export
+          // Optional: search Drive after short delay
           setTimeout(searchDriveForTakeout, 5000);
-        }).catch(error => {
-          console.error("Error signing in:", error);
-          document.getElementById("output").textContent = "❌ Sign-in failed.";
+        }).catch(err => {
+          document.getElementById("output").textContent = "❌ Error: " + err.error;
+          console.error(err);
         });
       });
     };
 
-    // Search Drive for Takeout ZIP files
     function searchDriveForTakeout() {
       gapi.client.drive.files.list({
         q: "mimeType='application/zip' and name contains 'takeout'",
@@ -68,9 +65,9 @@
         }
 
         document.getElementById("output").textContent = output;
-      }).catch(error => {
-        console.error("Drive search failed:", error);
-        document.getElementById("output").textContent = "❌ Failed to search Drive.";
+      }).catch(err => {
+        document.getElementById("output").textContent = "❌ Error loading Drive files.";
+        console.error(err);
       });
     }
   </script>
