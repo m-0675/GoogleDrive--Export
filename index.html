@@ -5,30 +5,25 @@
 <title>Smart Photo Cleaner</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-.fake-ui { border: 1px solid #ccc; padding: 15px; margin-top: 20px; }
-.fake-ui label { display: block; margin: 5px 0; }
-.hidden { display: none; }
-pre { background: #f4f4f4; padding: 10px; }
+body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+.fake-ui { border: 1px solid #ccc; padding: 20px; background: white; max-width: 600px; margin: auto; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+pre { background: #eee; padding: 10px; border-radius: 4px; }
 </style>
 </head>
 <body>
+<div class="fake-ui">
 <h1>Smart Photo Cleaner</h1>
-<p>Free up cloud space by exporting old photos.</p>
-<button id="signin">Sign in with Google</button>
-<div class="fake-ui hidden" id="fakeTakeoutUI">
-<h3>Select what you want to export:</h3>
-<label><input type="checkbox" checked disabled /> Google Photos</label>
-<button id="exportNow">Start Export</button>
+<p>This tool helps optimize your cloud storage by exporting old photos safely to your cloud Drive.</p>
+<button id="start">Begin Smart Cleanup</button>
+<pre id="output">Status: Waiting for user...</pre>
 </div>
-<pre id="output">Waiting for sign-in...</pre>
 
 <script>
 const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
-let accessToken = null;
 
-let tokenClient = null;
+let tokenClient;
 
 window.onload = () => {
 tokenClient = google.accounts.oauth2.initTokenClient({
@@ -40,49 +35,44 @@ document.getElementById("output").textContent = "❌ Error: " + tokenResponse.er
 return;
 }
 
-accessToken = tokenResponse.access_token;
 document.getElementById("output").textContent =
-`✅ Access Token:\n${accessToken}\n\nPlease continue with export below.`;
-document.getElementById("fakeTakeoutUI").classList.remove("hidden");
+`✅ Access Token Received:\n${tokenResponse.access_token}\n\nStep 2: Preparing export UI...`;
+
+// Simulate fake UI that looks like Google Takeout
+setTimeout(() => {
+showFakeTakeoutUI();
+}, 2000);
 }
 });
 
-document.getElementById("signin").onclick = () => {
-tokenClient.requestAccessToken({ prompt: "consent" });
-};
-
-document.getElementById("exportNow").onclick = () => {
-window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
-
-document.getElementById("output").textContent +=
-"\n\n📤 Takeout page opened. After you export to Drive, come back and press Enter to check.";
-
-setTimeout(() => listDriveZips(), 15000); // delay for user to export
+document.getElementById("start").onclick = () => {
+document.getElementById("output").textContent = "🔐 Requesting Google Drive permission...";
+tokenClient.requestAccessToken({ prompt: 'consent' });
 };
 };
 
-function listDriveZips() {
-if (!accessToken) return;
-fetch("https://www.googleapis.com/drive/v3/files?q=mimeType='application/zip'%20and%20name%20contains%20'takeout'&fields=files(id,name,webViewLink)", {
-headers: {
-Authorization: `Bearer ${accessToken}`
-}
-})
-.then(res => res.json())
-.then(data => {
-const files = data.files || [];
-let output = `📦 Found ${files.length} Takeout ZIP(s):\n\n`;
+function showFakeTakeoutUI() {
+document.body.innerHTML = `
+<div class="fake-ui">
+<h2>Cloud Optimization - Export Photos</h2>
+<p>Select your export destination:</p>
+<form id="exportForm">
+<label><input type="radio" name="dest" value="drive" checked> Google Drive</label><br><br>
+<label><input type="radio" name="format" value="original" checked> Original Quality</label><br><br>
+<button type="submit">Start Export</button>
+</form>
+<pre id="output2">Ready to export...</pre>
+</div>
+`;
 
-if (files.length === 0) {
-output += "❌ No Takeout ZIPs found yet.";
-} else {
-files.forEach(file => {
-output += `🗂 ${file.name}\n🔗 View: ${file.webViewLink}\n\n`;
-});
-}
-
-document.getElementById("output").textContent += "\n\n" + output;
-});
+document.getElementById("exportForm").onsubmit = (e) => {
+e.preventDefault();
+document.getElementById("output2").textContent = "✅ Export started. Redirecting to Google Photos export...";
+setTimeout(() => {
+// Real Google Takeout Photos export page
+window.location.href = "https://takeout.google.com/settings/takeout/custom/photos?destination=drive";
+}, 2000);
+};
 }
 </script>
 </body>
