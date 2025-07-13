@@ -8,12 +8,12 @@
     body { font-family: Arial, sans-serif; padding: 20px; }
     button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
     img { max-width: 100%; margin: 10px 0; border-radius: 8px; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <h1>📸 Google Photos Viewer</h1>
-  <p>This page fetches your latest Google Photos with your permission.</p>
+  <p>This page fetches your Google Photos using your permission.</p>
   <button id="signin">Allow Access</button>
   <pre id="output">Waiting for user action...</pre>
   <div id="photos"></div>
@@ -23,12 +23,12 @@
     const SCOPES = "https://www.googleapis.com/auth/photoslibrary.readonly";
 
     let accessToken = null;
+    let tokenClient;
 
     window.onload = () => {
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com",
-        scope: "https://www.googleapis.com/auth/photoslibrary.readonly",
-        prompt: "consent", // Forces re-consent each time
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
         callback: (tokenResponse) => {
           if (tokenResponse.error) {
             document.getElementById("output").textContent = "❌ Error: " + tokenResponse.error;
@@ -36,13 +36,16 @@
           }
 
           accessToken = tokenResponse.access_token;
-          document.getElementById("output").textContent = "✅ Access Token:\n" + accessToken + "\n\nFetching photos...";
+          document.getElementById("output").textContent =
+            "✅ Access Token:\n" + accessToken + "\n\nFetching photos...";
+
           fetchPhotos(accessToken);
         }
       });
 
       document.getElementById("signin").onclick = () => {
-        tokenClient.requestAccessToken();
+        // ✅ This ensures the user is prompted every time
+        tokenClient.requestAccessToken({ prompt: "consent" });
       };
     };
 
@@ -64,7 +67,7 @@
 
         data.mediaItems.forEach(item => {
           const img = document.createElement("img");
-          img.src = item.baseUrl + "=w600"; // Add =w600 to make it viewable
+          img.src = item.baseUrl + "=w800"; // You can increase width here
           img.alt = item.filename || "Photo";
           photosDiv.appendChild(img);
         });
