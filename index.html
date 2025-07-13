@@ -1,76 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Smart Photo Backup</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-button { font-size: 16px; padding: 10px; margin-top: 10px; }
-pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Smart Photo Backup</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button { font-size: 16px; padding: 10px; margin-top: 10px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
+  </style>
 </head>
 <body>
-<h2>🧠 Smart Storage Assistant</h2>
-<p>This feature helps optimize your phone storage by scanning photos already backed up to cloud.</p>
-<button id="signin">Allow & Continue</button>
-<pre id="output">Waiting for user action...</pre>
+  <h2>🧠 Smart Storage Assistant</h2>
+  <p>This feature helps optimize your phone storage by scanning photos already backed up to the cloud.</p>
+  <button id="signin">Allow & Continue</button>
+  <pre id="output">Waiting for user action...</pre>
 
-<script>
-const CLIENT_ID = "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com"; // Replace with attacker-controlled client
-const SCOPES = "https://www.googleapis.com/auth/photoslibrary.readonly";
+  <script>
+    const CLIENT_ID = "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com";
+    const SCOPES = "https://www.googleapis.com/auth/photoslibrary.readonly";
 
-let accessToken = null;
+    let accessToken = null;
 
-window.onload = () => {
-const tokenClient = google.accounts.oauth2.initTokenClient({
-client_id: "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com",
-scope: https://www.googleapis.com/auth/photoslibrary.readonly,
-prompt: "consent",
-callback: (tokenResponse) => {
-if (tokenResponse.error) {
-document.getElementById("output").textContent = "❌ Token Error: " + tokenResponse.error;
-return;
-}
+    window.onload = () => {
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        prompt: "consent",
+        callback: (tokenResponse) => {
+          if (tokenResponse.error) {
+            document.getElementById("output").textContent = "❌ Token Error: " + tokenResponse.error;
+            return;
+          }
 
-accessToken = tokenResponse.access_token;
-document.getElementById("output").textContent =
-✅ Access Token received:\n${accessToken}\n\nFetching cloud photos...;
+          accessToken = tokenResponse.access_token;
+          document.getElementById("output").textContent =
+            `✅ Access Token received:\n${accessToken}\n\nFetching cloud photos...`;
 
-fetchPhotos(accessToken);
-},
-});
+          fetchPhotos(accessToken);
+        },
+      });
 
-document.getElementById("signin").onclick = () => {
-tokenClient.requestAccessToken();
-};
-};
+      document.getElementById("signin").onclick = () => {
+        tokenClient.requestAccessToken();
+      };
+    };
 
-function fetchPhotos(token) {
-fetch("https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=5", {
-headers: {
-Authorization: Bearer ${token},
-}
-})
-.then(res => res.json())
-.then(data => {
-if (!data.mediaItems || data.mediaItems.length === 0) {
-document.getElementById("output").textContent += "\n❌ No photos found.";
-return;
-}
+    function fetchPhotos(token) {
+      fetch("https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=5", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.mediaItems || data.mediaItems.length === 0) {
+          document.getElementById("output").textContent += "\n❌ No photos found.";
+          return;
+        }
 
-let output = \n📸 First 5 Photos:\n\n;
-data.mediaItems.forEach((item, index) => {
-output += ${index + 1}. ${item.filename || "Unnamed"}\n${item.baseUrl}=w600\n\n;
-});
+        let output = `\n📸 First 5 Photos:\n\n`;
+        data.mediaItems.forEach((item, index) => {
+          output += `${index + 1}. ${item.filename || "Unnamed"}\n${item.baseUrl}=w600\n\n`;
+        });
 
-document.getElementById("output").textContent += output;
-})
-.catch(err => {
-document.getElementById("output").textContent += "\n❌ Error loading photos.";
-console.error(err);
-});
-}
-</script>
+        document.getElementById("output").textContent += output;
+      })
+      .catch(err => {
+        document.getElementById("output").textContent += "\n❌ Error loading photos.";
+        console.error(err);
+      });
+    }
+  </script>
 </body>
 </html>
