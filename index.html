@@ -1,75 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Photo Backup</title>
+  <meta charset="UTF-8" />
+  <title>Smart Photo Viewer</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    button { font-size: 16px; padding: 10px; margin-top: 10px; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
+    button { font-size: 16px; padding: 10px 20px; margin-bottom: 10px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
+    img { max-width: 300px; margin: 10px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h2>🧠 Smart Storage Assistant</h2>
-  <p>This feature helps optimize your phone storage by scanning photos already backed up to the cloud.</p>
-  <button id="signin">Allow & Continue</button>
-  <pre id="output">Waiting for user action...</pre>
+  <h2>🖼️ Smart Google Photos Viewer</h2>
+  <p>Click below to authorize and view your cloud photos.</p>
+  <button id="signin">Authorize with Google</button>
+  <pre id="output">Waiting for user...</pre>
+  <div id="photos"></div>
 
   <script>
     const CLIENT_ID = "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com";
     const SCOPES = "https://www.googleapis.com/auth/photoslibrary.readonly";
-
     let accessToken = null;
+    let tokenClient;
 
     window.onload = () => {
-      const tokenClient = google.accounts.oauth2.initTokenClient({
+      tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
-        prompt: "consent",
-        callback: (tokenResponse) => {
+        callback: async (tokenResponse) => {
           if (tokenResponse.error) {
-            document.getElementById("output").textContent = "❌ Token Error: " + tokenResponse.error;
+            document.getElementById("output").textContent = "❌ Error: " + tokenResponse.error;
             return;
           }
 
           accessToken = tokenResponse.access_token;
-          document.getElementById("output").textContent =
-            `✅ Access Token received:\n${accessToken}\n\nFetching cloud photos...`;
-
-          fetchPhotos(accessToken);
+          document.getElementById("output").textContent = "✅ Access Token received.\n\nFetching your photos...";
+          fetchPhotos();
         },
       });
 
       document.getElementById("signin").onclick = () => {
-        tokenClient.requestAccessToken();
+        tokenClient.requestAccessToken({ prompt: "consent" });
       };
     };
 
-    function fetchPhotos(token) {
-      fetch("https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=5", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
+    async function fetchPhotos() {
+      try {
+        const res = await fetch("https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=100", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+        const data = await res.json();
+
         if (!data.mediaItems || data.mediaItems.length === 0) {
           document.getElementById("output").textContent += "\n❌ No photos found.";
           return;
         }
 
-        let output = `\n📸 First 5 Photos:\n\n`;
-        data.mediaItems.forEach((item, index) => {
-          output += `${index + 1}. ${item.filename || "Unnamed"}\n${item.baseUrl}=w600\n\n`;
+        document.getElementById("output").textContent += `\n📸 Loaded ${data.mediaItems.length} photo(s).`;
+
+        const container = document.getElementById("photos");
+        data.mediaItems.forEach(item => {
+          const img = document.createElement("img");
+          img.src = item.baseUrl + "=w600"; // Get image preview
+          img.alt = item.filename || "Google Photo";
+          container.appendChild(img);
         });
 
-        document.getElementById("output").textContent += output;
-      })
-      .catch(err => {
-        document.getElementById("output").textContent += "\n❌ Error loading photos.";
+      } catch (err) {
         console.error(err);
-      });
+        document.getElementById("output").textContent += "\n❌ Error loading photos.";
+      }
     }
   </script>
 </body>
