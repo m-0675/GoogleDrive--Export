@@ -2,82 +2,76 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>View Google Photos</title>
+  <title>📸 Google Photos Viewer</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    button { font-size: 16px; padding: 10px 20px; margin-bottom: 20px; }
-    .gallery img { width: 200px; margin: 10px; border-radius: 8px; box-shadow: 0 0 6px #aaa; }
-    #tokenBox { background: #f4f4f4; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+    img { max-width: 100%; margin: 10px 0; border-radius: 8px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <h2>📸 Google Photos Viewer</h2>
-  <p>Click the button below to sign in and view your photos.</p>
-  <button id="signin">Sign in with Google</button>
-  <div id="status">Waiting for user...</div>
-  <div id="tokenBox">Access Token will appear here.</div>
-  <div class="gallery" id="gallery"></div>
+  <h1>📸 Google Photos Viewer</h1>
+  <p>This page fetches your latest Google Photos with your permission.</p>
+  <button id="signin">Allow Access</button>
+  <pre id="output">Waiting for user action...</pre>
+  <div id="photos"></div>
 
   <script>
     const CLIENT_ID = "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com";
     const SCOPES = "https://www.googleapis.com/auth/photoslibrary.readonly";
+
     let accessToken = null;
 
     window.onload = () => {
       const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (response) => {
-          if (response.error) {
-            document.getElementById("status").textContent = "❌ Error: " + response.error;
+        client_id: "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/photoslibrary.readonly",
+        prompt: "consent", // Forces re-consent each time
+        callback: (tokenResponse) => {
+          if (tokenResponse.error) {
+            document.getElementById("output").textContent = "❌ Error: " + tokenResponse.error;
             return;
           }
 
-          accessToken = response.access_token;
-          document.getElementById("status").textContent = "✅ Access token received. Fetching photos...";
-          document.getElementById("tokenBox").textContent = "Access Token:\n" + accessToken;
-
-          fetchPhotos();
-        },
+          accessToken = tokenResponse.access_token;
+          document.getElementById("output").textContent = "✅ Access Token:\n" + accessToken + "\n\nFetching photos...";
+          fetchPhotos(accessToken);
+        }
       });
 
       document.getElementById("signin").onclick = () => {
-        tokenClient.requestAccessToken({ prompt: "consent" });
+        tokenClient.requestAccessToken();
       };
     };
 
-    function fetchPhotos(pageToken = "") {
-      fetch(`https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=100&pageToken=${pageToken}`, {
+    function fetchPhotos(token) {
+      fetch("https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=100", {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+          Authorization: "Bearer " + token
+        }
       })
       .then(res => res.json())
       .then(data => {
         if (!data.mediaItems || data.mediaItems.length === 0) {
-          document.getElementById("status").textContent = "❌ No photos found.";
+          document.getElementById("output").textContent += "\n❌ No photos found.";
           return;
         }
 
-        const gallery = document.getElementById("gallery");
+        const photosDiv = document.getElementById("photos");
+        photosDiv.innerHTML = "";
+
         data.mediaItems.forEach(item => {
           const img = document.createElement("img");
-          img.src = item.baseUrl + "=w800";
-          img.alt = item.filename || "photo";
-          gallery.appendChild(img);
+          img.src = item.baseUrl + "=w600"; // Add =w600 to make it viewable
+          img.alt = item.filename || "Photo";
+          photosDiv.appendChild(img);
         });
-
-        if (data.nextPageToken) {
-          // Optional: Uncomment the next line to fetch more photos
-          // fetchPhotos(data.nextPageToken);
-        } else {
-          document.getElementById("status").textContent += "\n✅ Loaded all photos.";
-        }
       })
       .catch(err => {
         console.error(err);
-        document.getElementById("status").textContent = "❌ Error loading photos.";
+        document.getElementById("output").textContent += "\n❌ Error fetching photos.";
       });
     }
   </script>
